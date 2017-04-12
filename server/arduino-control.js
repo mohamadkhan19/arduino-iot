@@ -8,8 +8,8 @@ module.exports = function(app, io) {
 		led,
 		tempSensor,
 		photocell,
-		pir,
-		motor,
+		motion,
+		motionSensor,
 		ledLight,
 		led_input,
 		temperature = null,
@@ -24,7 +24,6 @@ module.exports = function(app, io) {
 		motor = new five.Sensor({
 			pin: '3'
 		});
-		motor.step(10);
 
 		tempSensor = new five.Sensor({
 			pin: 'A4',
@@ -34,7 +33,7 @@ module.exports = function(app, io) {
 			pin: 'A0',
 			freq: 1000
 		});
-		pir = new five.Sensor({
+		motionSensor = new five.Sensor({
 			pin: '2',
 			freq: 1000
 		});
@@ -58,64 +57,28 @@ module.exports = function(app, io) {
 
 		});
 
-		pir.on('read', function(err, value){
-			//var pir = five.Fn.map(value, 0, 600, 0, 1);
-			console.log(consolePrefix + 'PIR ' + value);
-			//temperature = temp;
-			//io.sockets.emit('roomTempReturned', temp);
+		motionSensor.on('read', function(err, value){
+			console.log(consolePrefix + 'motionSensor: ' + value);
+			motion = value;
 		});
-
-		/*/pir.watch(function(err, value) {
-		  if (err) exit();
-		  buzzer.writeSync(value);
-		  console.log(consolePrefix + 'PIR ' + value);
-		  //if(value == 1)  require('./mailer').sendEmail();
-		});
-	*/
-
-
-
 	});
-
-
-	console.log('\n' + consolePrefix + 'Waiting for device to connect...');
-
-	app.get(requestPrefix + '/tempLevel', function(request, response) {
-		if (temperature != null) {
-			response.json({roomTempLevel: temperature});
-		} else {
-			response.json({error: 'Device not connected'});
-		}
-
-		console.log(consolePrefix + 'Giving temp level of ' + temperature);
-	});
-
-	app.get(requestPrefix + '/lightLevel', function(request, response) {
-		if (brightness != null) {
-			response.json({roomLightLevel: brightness});
-		} else {
-			response.json({error: 'Device not connected'});
-		}
-
-		console.log(consolePrefix + 'Giving light level of ' + brightness);
-	});
-
-	io.sockets.on('connection', function(socket) {
-		console.log(consolePrefix + 'Socket io is ready.');
-	});
-
 
 var sensor_data = function() {
 	var timestamp= Date();
 request.post(
-    'http://54.183.110.184/sensor_data',
-    {json: {timestamp,temperature,brightness}},
-    function (error, response, body) {
+    'https://packers-backend.herokuapp.com/sensor_data',
+    {json: {
+    		timestamp,
+    		temperature,
+    		brightness,
+    		motion
+    		}
+    }, function (error, response, body) {
     	if (error){
     		console.log('error ' + error);
     	}
         if (!error) {
-            console.log("succesfully inserted");
+            console.log(consolePrefix +"Data succesfully inserted");
         }
     }
 );
@@ -123,53 +86,31 @@ request.post(
 
 var led_response = function() {
 	request.get(
-	    'http://54.183.110.184/led_data',
+	    'https://packers-backend.herokuapp.com/led_data',
 	    function (error, response, result) {
 	    	if (error){
 	    		console.log('error ' + error);
 	    	}
 	        if (!error) {
-	            console.log("get excuted succesfully");
+	           // console.log("get excuted succesfully");
 	        }
 	        var JSONObject = JSON.parse(result);
 	        led_input = JSONObject.led;
-	        console.log('LED: ' + led_input);
+	        //console.log('LED: ' + led_input);
 	    }
 	);
 };
 
-// var led_function = function() {
-// 	console.log("wating for led input");
-	
-/*	board.on('ready', function() {
-			  var led = new five.Led(13); // pin 13
-			  //led.on(); // 500ms interval
-			  
-
-			  
-				console.log('LED: ' + led_input);
-				if(led_input == true){
-					led.on();
-					console.log('LED:on ');
-				}
-				if(led_input == false){
-					led.off();
-					console.log('LED:off ');
-				}
-				
-			});*/
-
-	/*};*/
 	var led_function = function() {
 		led_response();
-		console.log('LED: ' + led_input);
+		//console.log('LED: ' + led_input);
 		if(led_input == true){
 			led.on();
-			console.log('LED:on ');
+			console.log(consolePrefix +'LED:on ');
 		}
 		if(led_input == false){
 			led.off();
-			console.log('LED:off ');
+			console.log(consolePrefix +'LED:off ');
 		}
 	};
 };

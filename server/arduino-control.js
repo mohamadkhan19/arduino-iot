@@ -5,6 +5,8 @@ module.exports = function(app, io) {
 		five = require('johnny-five'),
 		board = new five.Board(),
 		request = require('request'),
+		mac = require('getmac'),
+		macaddr,
 		led,
 		tempSensor,
 		photocell,
@@ -13,12 +15,21 @@ module.exports = function(app, io) {
 		ledLight,
 		led_input,
 		temperature = null,
-		brightness = null;
+		brightness = null,
+		m1,
+		m2,
+		i=0,
+		notification;
+
+	mac.getMac(function(err,macAddress){
+	    if (err)  throw err
+	    macaddr = macAddress;
+	})
 
 	app.use(bodyParser.json());
 
 	board.on('ready', function() {
-		console.log(consolePrefix + 'Board ready');
+		console.log(consolePrefix + 'Board ready and mac addr is: ' + macaddr);
 
 		led = new five.Led(13);
 		motor = new five.Sensor({
@@ -54,6 +65,7 @@ module.exports = function(app, io) {
 			io.sockets.emit('roomLightLevelReturned', brightnessValue);
 			sensor_data();
 			led_function();
+			emptyRoom_function();
 
 		});
 
@@ -111,6 +123,60 @@ var led_response = function() {
 		if(led_input == false){
 			led.off();
 			console.log(consolePrefix +'LED:off ');
+		}
+	};
+
+	var emptyRoom_function = function() {
+
+		
+		m1=motion;
+
+		if (brightness>30 && ( (m1>(m2-3)) && (m1<(m2+3)) ) ){
+			i++;
+			
+		}
+		else{
+			i=0;
+		}
+		m2=m1;
+		console.log(consolePrefix +"i:"+i);
+		console.log(consolePrefix +"m1:"+m1);
+		console.log(consolePrefix +"m2:"+m2);
+
+		if (i==60){
+			notification=true;
+			request.patch(
+			    'https://packers-backend.herokuapp.com/notification/59053e99027d17296c1c4e3f',
+			    {json: {
+			    		notification
+			    		}
+			    }, function (error, response, body) {
+			    	if (error){
+			    		console.log('error ' + error);
+			    	}
+			        if (!error) {
+			            console.log(consolePrefix +"Empty room detected,Notified to andriod");
+			        }
+			    }
+			);
+			i=0;
+		}
+		else{
+			notification=false;
+			request.patch(
+			    'https://packers-backend.herokuapp.com/notification/59053e99027d17296c1c4e3f',
+			    {json: {
+			    		notification
+			    		}
+			    }, function (error, response, body) {
+			    	if (error){
+			    		console.log('error ' + error);
+			    	}
+			        if (!error) {
+			            console.log(consolePrefix +"Room is not Empty");
+			        }
+			    }
+			);
 		}
 	};
 };

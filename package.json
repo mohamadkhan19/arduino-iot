@@ -9,6 +9,7 @@
     "body-parser": "^1.9.2",
     "express": "^4.10.2",
     "firmata": "^0.16.0",
+    "getmac": "^1.2.1",
     "http": "0.0.0",
     "johnny-five": "^0.8.26",
     "path": "^0.4.9",
